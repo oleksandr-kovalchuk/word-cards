@@ -1,8 +1,6 @@
 import './review-view.css';
+import type { ReviewAnswer } from './srs';
 import type { Word } from './word';
-
-/** The user's self-assessment for a card. */
-export type ReviewAnswer = 'know' | 'dont-know';
 
 export interface ReviewCardOptions {
   /** Called once, when the user picks an answer. */
