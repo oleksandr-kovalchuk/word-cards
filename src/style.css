@@ -98,3 +98,31 @@ h1 {
 .review-status {
   color: #656d76;
 }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.stat {
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.stat dt {
+  color: #656d76;
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.stats-hint {
+  color: #656d76;
+}
