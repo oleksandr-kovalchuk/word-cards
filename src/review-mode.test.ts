@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { loadReviewDays } from './review-days-storage';
 import { startReviewMode } from './review-mode';
 import { loadReviewStates, saveReviewStates } from './review-storage';
 import { createReviewState, review, type ReviewAnswer } from './srs';
@@ -94,6 +95,34 @@ describe('startReviewMode', () => {
 
     expect(loadReviewStates()[0]).toEqual(other);
     expect(loadReviewStates()).toHaveLength(2);
+  });
+
+  it('reports the cards left at the start and after every answer', () => {
+    const progress: number[] = [];
+    startReviewMode(container, { words: [word('a'), word('b')], now, onProgress: (n) => progress.push(n) });
+
+    answer(container, 'dont-know');
+    answer(container, 'know');
+    answer(container, 'know');
+
+    expect(progress).toEqual([2, 2, 1, 0]);
+  });
+
+  it('reports 0 when nothing is due', () => {
+    const progress: number[] = [];
+    startReviewMode(container, { words: [], now, onProgress: (n) => progress.push(n) });
+
+    expect(progress).toEqual([0]);
+  });
+
+  it('records the day of each review for the streak', () => {
+    startReviewMode(container, { words: [word('a'), word('b')], now });
+    expect(loadReviewDays()).toEqual([]);
+
+    answer(container, 'know');
+    answer(container, 'dont-know');
+
+    expect(loadReviewDays()).toHaveLength(1);
   });
 
   it('removes itself on destroy', () => {

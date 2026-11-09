@@ -1,3 +1,4 @@
+import { recordReviewDay } from './review-days-storage';
 import { applyAnswer, getDueWords } from './review-session';
 import { loadReviewStates, saveReviewStates } from './review-storage';
 import { renderReviewCard, type ReviewCard } from './review-view';
@@ -10,6 +11,8 @@ export interface ReviewModeOptions {
   storage?: Storage;
   /** Returns the current time. Injected for tests. */
   now?: () => Date;
+  /** Called with the number of cards left when the session starts and after every answer. */
+  onProgress?: (remaining: number) => void;
 }
 
 export interface ReviewMode {
@@ -23,10 +26,11 @@ export interface ReviewMode {
  * Runs a review session in `container`: shows each due word as a flashcard,
  * applies the scheduler to every answer and saves the progress right away.
  * A card answered with "I don't know it" comes back at the end of the session.
+ * Every answer also records today as a review day for the streak.
  */
 export function startReviewMode(
   container: HTMLElement,
-  { words, storage = localStorage, now = () => new Date() }: ReviewModeOptions,
+  { words, storage = localStorage, now = () => new Date(), onProgress }: ReviewModeOptions,
 ): ReviewMode {
   const root = document.createElement('div');
   root.className = 'review-mode';
@@ -57,13 +61,16 @@ export function startReviewMode(
       onAnswer: (answer) => {
         // Read fresh states so other tabs' progress is not overwritten.
         saveReviewStates(applyAnswer(loadReviewStates(storage), word.id, answer, now()), storage);
+        recordReviewDay(now(), storage);
         queue.shift();
         if (answer === 'dont-know') queue.push(word);
+        onProgress?.(queue.length);
         showNext();
       },
     });
   };
 
+  onProgress?.(queue.length);
   if (queue.length === 0) {
     status.textContent = words.length === 0 ? 'Add some words first.' : 'No cards to review right now.';
   } else {

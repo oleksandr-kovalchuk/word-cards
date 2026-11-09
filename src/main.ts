@@ -1,7 +1,10 @@
 import './style.css';
 import { startReviewMode, type ReviewMode } from './review-mode';
 import { getDueWords } from './review-session';
+import { loadReviewDays } from './review-days-storage';
 import { loadReviewStates } from './review-storage';
+import { getStats } from './stats';
+import { renderStats } from './stats-view';
 import { addWord, loadWords } from './storage';
 import { createWord, type Word } from './word';
 
@@ -15,6 +18,7 @@ if (app) {
       <nav class="tabs">
         <button type="button" class="tab" data-view="words" aria-pressed="true">Words</button>
         <button type="button" class="tab" data-view="review" aria-pressed="false">Review <span class="due-count"></span></button>
+        <button type="button" class="tab" data-view="stats" aria-pressed="false">Stats</button>
       </nav>
     </header>
     <main class="view-words">
@@ -28,35 +32,50 @@ if (app) {
       <ul class="word-list"></ul>
     </main>
     <main class="view-review" hidden></main>
+    <main class="view-stats" hidden></main>
   `;
 
   const wordsView = app.querySelector<HTMLElement>('.view-words')!;
   const reviewView = app.querySelector<HTMLElement>('.view-review')!;
+  const statsView = app.querySelector<HTMLElement>('.view-stats')!;
   const dueCount = app.querySelector<HTMLSpanElement>('.due-count')!;
   const tabs = app.querySelectorAll<HTMLButtonElement>('.tab');
   let reviewMode: ReviewMode | null = null;
 
-  const updateDueCount = (): void => {
-    const due = getDueWords(loadWords(), loadReviewStates()).length;
+  type View = 'words' | 'review' | 'stats';
+
+  const setDueCount = (due: number): void => {
     dueCount.textContent = due > 0 ? `(${due})` : '';
   };
 
-  const showView = (view: 'words' | 'review'): void => {
+  const updateDueCount = (): void => {
+    setDueCount(getDueWords(loadWords(), loadReviewStates()).length);
+  };
+
+  const showView = (view: View): void => {
     tabs.forEach((tab) => tab.setAttribute('aria-pressed', String(tab.dataset.view === view)));
     wordsView.hidden = view !== 'words';
     reviewView.hidden = view !== 'review';
+    statsView.hidden = view !== 'stats';
 
     reviewMode?.destroy();
     reviewMode = null;
     if (view === 'review') {
-      reviewMode = startReviewMode(reviewView, { words: loadWords() });
+      // The tab counter follows the session, so it goes down with every answer.
+      reviewMode = startReviewMode(reviewView, { words: loadWords(), onProgress: setDueCount });
     } else {
       updateDueCount();
     }
+    if (view === 'stats') {
+      renderStats(statsView, getStats(loadWords(), loadReviewStates(), loadReviewDays()));
+    }
   };
 
+  const toView = (value: string | undefined): View =>
+    value === 'review' || value === 'stats' ? value : 'words';
+
   tabs.forEach((tab) => {
-    tab.addEventListener('click', () => showView(tab.dataset.view === 'review' ? 'review' : 'words'));
+    tab.addEventListener('click', () => showView(toView(tab.dataset.view)));
   });
 
   const form = app.querySelector<HTMLFormElement>('.add-word')!;
