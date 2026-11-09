@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderReviewCard, type ReviewAnswer } from './review-view';
+import { renderReviewCard } from './review-view';
+import type { ReviewAnswer } from './srs';
 import type { Word } from './word';
 
 const word: Word = {
